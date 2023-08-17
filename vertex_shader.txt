@@ -1,0 +1,99 @@
+#version 330
+
+layout (location = 0) in vec3 position_2;
+layout (location = 1) in vec4 color;
+
+smooth out vec4 color_output;
+
+uniform float time;
+uniform float rotation_point_x;
+uniform float rotation_point_y;
+uniform float period; 
+
+uniform float z_key_offset;
+uniform float x_key_offset;
+uniform float y_key_offset;
+
+uniform float y_rotation_angle;
+uniform float x_rotation_angle;
+
+uniform bool will_the_cube_rotate;
+
+float time_passed;
+
+const float near = 1.0;
+const float far = 10.0;
+
+vec3 position = position_2;
+
+void main(){
+    vec4 offset;
+    if(will_the_cube_rotate){
+        float R = sqrt((rotation_point_y - position.y)*(rotation_point_y - position.y) + (rotation_point_x - position.x)*(rotation_point_x - position.x));
+        float height = position.y - rotation_point_y;
+        float width = position.x - rotation_point_x;
+        float angle;
+        if(width == 0){
+        angle = 3.14159/2;
+        }
+        else{
+        angle = atan(abs(height) / abs(width));
+        }
+        if(height >= 0 && width >= 0){
+            time_passed = angle * period / 2 / 3.14159;
+        }
+        else if(height >= 0 && width <= 0){
+            angle = 3.14159 - angle;
+            time_passed = angle * period / 2 / 3.14159;
+        }
+        else if(height <= 0 && width <= 0){
+            angle = 3.14159 + angle;
+            time_passed = angle * period / 2 / 3.14159;
+        }
+        else if(height <= 0 && width >= 0){
+            angle = 2*3.14159 - angle;
+            time_passed = angle * period / 2 / 3.14159;
+        }
+        float x_offset = R*cos(2*3.14159*(time + time_passed)/period) - R*cos(2*3.14159*time_passed/period);
+        float y_offset = R*sin(2*3.14159*(time + time_passed)/period) - R*sin(2*3.14159*time_passed/period);
+        offset = vec4(x_offset, y_offset, 0, 0);
+    }
+  
+    position.x = position.x + x_key_offset;
+    position.y = position.y + y_key_offset;
+    position.z = position.z + z_key_offset;
+
+    float temp_position_z;
+    float new_position_x;
+
+    if(position.x >= 0 && position.z >= 0){
+        new_position_x = sqrt(position.x*position.x + position.z*position.z) * cos(atan(position.z/position.x) + x_rotation_angle);    
+        temp_position_z = sqrt(position.x*position.x + position.z*position.z) * sin(atan(position.z/position.x) + x_rotation_angle);
+    }
+    else if(position.x <= 0 && position.z >= 0){
+        new_position_x = sqrt(position.x*position.x + position.z*position.z) * cos(3.14159 - atan(position.z/-position.x)  + x_rotation_angle);
+        temp_position_z = sqrt(position.x*position.x + position.z*position.z) * sin(3.14159 - atan(position.z/-position.x) + x_rotation_angle);
+    }
+    else if(position.x <= 0 && position.z <= 0){
+        new_position_x = sqrt(position.x*position.x + position.z*position.z) * cos(3.14159 + atan(position.z/position.x)  + x_rotation_angle);
+        temp_position_z = sqrt(position.x*position.x + position.z*position.z) * sin(3.14159 + atan(position.z/position.x) + x_rotation_angle);
+    }
+    else{
+        new_position_x = sqrt(position.x*position.x + position.z*position.z) * cos(2*3.14159 - atan(-position.z/position.x)  + x_rotation_angle);
+        temp_position_z = sqrt(position.x*position.x + position.z*position.z) * sin(2*3.14159 - atan(-position.z/position.x) + x_rotation_angle);
+    }
+    
+    float new_position_y = sqrt(position.y*position.y + position.z*position.z) * sin(atan(position.y/position.z) - y_rotation_angle);
+    float new_position_z = sqrt(position.y*position.y + temp_position_z*temp_position_z) * cos(atan(position.y/temp_position_z) - y_rotation_angle);
+
+    vec4 temp_position;
+    float temp_z = (new_position_z -5.5)/4.5*new_position_z ;
+    temp_position = vec4(new_position_x, new_position_y, temp_z, new_position_z);
+
+    color_output = color;
+    gl_Position = temp_position;
+    if(will_the_cube_rotate){
+        gl_Position = gl_Position + offset;
+    }
+    
+}
